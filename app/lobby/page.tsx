@@ -73,7 +73,7 @@ function App() {
 	}, []);
 
 	useEffect(() => {
-		let socket = io('http://localhost:5000');
+		let socket = io('https://webrtc-c6vy.onrender.com'); 
 
 		socket.connect();
 
