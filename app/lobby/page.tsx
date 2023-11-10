@@ -270,8 +270,8 @@ function App() {
 									</div>
 								)}</>
 						:
-						<>
-							< h1 style={{ textAlign: "center", color: '#fff' }}>Audio call</h1 >
+						<div className="flex min-h-screen flex-col items-center justify-center">
+							< h1 style={{ textAlign: "center", color: '#fff',fontWeight:'800',marginBottom:10,fontSize:'20px' }}>Audio call</h1 >
 							<div className="container">
 								<div className="myId">
 									<TextField
@@ -305,7 +305,7 @@ function App() {
 									</div>
 								</div>
 							</div>
-						</>
+						</div>
 					}</>
 			}
 		</>
