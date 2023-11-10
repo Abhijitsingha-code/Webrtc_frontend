@@ -187,7 +187,7 @@ function App() {
 							<div className='bg-white p-3 cursor-pointer rounded-full'>
 								<VolumeOffIcon />
 							</div>
-							<div className='bg-white p-3 rounded-full bg-red-700 cursor-pointer text-white' onClick={leaveCall}>
+							<div className='p-3 rounded-full bg-red-800 cursor-pointer text-white' onClick={leaveCall}>
 								<PhoneIcon />
 							</div>
 						</div>
@@ -200,10 +200,10 @@ function App() {
 						<Avatar sx={{ width: 90, height: 90 }}>{name[0]}</Avatar>
 
 						<div className='flex flex-row gap-10 items-center'>
-							<div className='bg-white p-3 rounded-full bg-green-700 cursor-pointer text-white' onClick={answerCall}>
+							<div className='p-3 rounded-full bg-green-800 cursor-pointer text-white' onClick={answerCall}>
 								<PhoneIcon />
 							</div>
-							<div className='bg-white p-3 rounded-full bg-red-700 cursor-pointer text-white' onClick={leaveCall}>
+							<div className='p-3 rounded-full bg-red-800 cursor-pointer text-white' onClick={leaveCall}>
 								<PhoneIcon />
 							</div>
 						</div>
@@ -241,7 +241,7 @@ function App() {
 										<div className='bg-white p-3 cursor-pointer rounded-full'>
 											<VolumeOffIcon />
 										</div>
-										<div className='bg-white p-3 rounded-full bg-red-700 cursor-pointer text-white' onClick={leaveCall}>
+										<div className='p-3 rounded-full bg-red-800 cursor-pointer text-white' onClick={leaveCall}>
 											<PhoneIcon />
 										</div>
 									</div>
@@ -263,7 +263,7 @@ function App() {
 											<div className='bg-white p-3 cursor-pointer rounded-full'>
 												<VolumeOffIcon />
 											</div>
-											<div className='bg-white p-3 rounded-full bg-red-700 cursor-pointer text-white'>
+											<div className='p-3 rounded-full bg-red-800 cursor-pointer text-white'>
 												<PhoneIcon />
 											</div>
 										</div>
