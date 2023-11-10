@@ -6,6 +6,11 @@ import { LocalPhone } from '@mui/icons-material'
 import React, { useEffect, useRef, useState } from "react"
 import Peer from "simple-peer"
 import io from "socket.io-client"
+import { useRouter } from 'next/navigation';
+import Avatar from '@mui/material/Avatar';
+import PhoneIcon from '@mui/icons-material/Phone';
+import VolumeUpIcon from '@mui/icons-material/VolumeUp';
+import VolumeOffIcon from '@mui/icons-material/VolumeOff';
 
 
 function App() {
@@ -17,12 +22,14 @@ function App() {
 	const [callAccepted, setCallAccepted] = useState(false)
 	const [idToCall, setIdToCall] = useState("")
 	const [callEnded, setCallEnded] = useState(false)
+	const [outgoingCall, setOutgoingCall] = useState(false)
 	const [name, setName] = useState("")
 	const myVideo = useRef<any>()
 	const userVideo = useRef<any>()
 	const connectionRef = useRef<any>()
 	const [socket2, setSocket2] = useState<any>()
-	const [myName, setMyName] = useState('')
+	const [myName, setMyName] = useState('');
+	const route = useRouter()
 
 	// useEffect(() => {
 	// 	console.log('Setting up socket and media devices');
@@ -58,7 +65,7 @@ function App() {
 	useEffect(() => {
 		navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then((stream) => {
 			console.log('Media devices initialized');
-			setStream( stream);
+			setStream(stream);
 			if (myVideo.current) {
 				myVideo.current.srcObject = stream;
 			}
@@ -66,25 +73,25 @@ function App() {
 	}, []);
 
 	useEffect(() => {
-		let socket = io('https://webrtc-c6vy.onrender.com'); 
+		let socket = io('http://localhost:5000');
 
 		socket.connect();
 
 		setSocket2(socket.connect())
 
 		socket.on("connect", () => {
-			socket.on('me', (id:any) => {
+			socket.on('me', (id: any) => {
 				console.log(socket.id);
 				console.log('Received me event with ID:', id);
 				setMe(id);
 			});
-			socket.on("callUser", (data:any) => {
+			socket.on("callUser", (data: any) => {
 				setReceivingCall(true);
 				setCaller(data.from);
 				setName(data.name);
 				setCallerSignal(data.signal);
 			});
-			
+
 		});
 
 
@@ -96,6 +103,7 @@ function App() {
 	}, [])
 
 	const callUser = (id: any) => {
+		setOutgoingCall(true)
 		const peer = new Peer({
 			initiator: true,
 			trickle: false,
@@ -115,16 +123,16 @@ function App() {
 			}
 
 		})
-		socket2?.on("callAccepted", (signal:any) => {
+		socket2?.on("callAccepted", (signal: any) => {
 			setCallAccepted(true)
 			peer.signal(signal)
 		})
 
-		connectionRef.current = peer
+		connectionRef.current = peer;
 	}
 
 	const answerCall = () => {
-		setCallAccepted(true)
+		setCallAccepted(true);
 		const peer = new Peer({
 			initiator: false,
 			trickle: false,
@@ -151,63 +159,155 @@ function App() {
 
 	return (
 		<>
-			<h1 style={{ textAlign: "center", color: '#fff' }}>Audio call</h1>
-			<div className="container">
-				<div className="video-container">
-					<div className="video">
-						<p>Desktop :</p>
-						{stream && <video playsInline ref={myVideo} autoPlay style={{ width: "300px" }} />}
-					</div>
-					<div className="video">
-						{/* {name ? <p>{name} :</p>: null} */}
-						<p>Remote :</p>
-						{callAccepted && !callEnded ?
-							<video playsInline ref={userVideo} autoPlay style={{ width: "300px" }} /> :
-							null}
-					</div>
-				</div>
-				<div className="myId">
-					<TextField
-						id="filled-basic"
-						label="Name"
-						variant="filled"
-						value={myName}
-						onChange={(e) => setMyName(e.target.value)}
-						style={{ marginBottom: "20px" }}
-					/>
-					<p>My id : {me}</p>
+			{receivingCall ?
 
-					<TextField
-						id="filled-basic"
-						label="ID to call"
-						variant="filled"
-						value={idToCall}
-						onChange={(e) => setIdToCall(e.target.value)}
-					/>
-					<div className="call-button">
-						{callAccepted && !callEnded ? (
-							<Button variant="contained" color="secondary" onClick={leaveCall}>
-								End Call
-							</Button>
-						) : (
-							<IconButton color="primary" aria-label="call" onClick={() => callUser(idToCall)}>
-								<LocalPhone fontSize="large" />
-							</IconButton>
-						)}
-						{idToCall}
-					</div>
-				</div>
-				<div>
-					{receivingCall && !callAccepted ? (
-						<div className="caller">
-							<h1 >{name} is calling...</h1>
-							<Button variant="contained" color="primary" onClick={answerCall}>
-								Answer
-							</Button>
+				<>{callAccepted ?
+					<div className="flex min-h-screen flex-col items-center justify-between p-24">
+						<div className='flex flex-col gap-4 items-center'>
+							<p className='text-white font-bold text-xl'>In Call</p>
 						</div>
-					) : null}
-				</div>
-			</div>
+						<Avatar sx={{ width: 90, height: 90 }}>{name[0]}</Avatar>
+						<div className="video-container">
+							{/* <div className="video"> */}
+							{/* <p>Desktop :</p> */}
+							{/* {stream && <audio playsInline ref={myVideo} muted autoPlay style={{ width: "300px" }} />} */}
+							{/* </div> */}
+							<div className="video">
+								{/* {name ? <p>{name} :</p>: null} */}
+								{/* <p>Remote :</p> */}
+								{callAccepted && !callEnded ?
+									<audio playsInline ref={userVideo} autoPlay style={{ width: "300px" }} /> :
+									null}
+							</div>
+						</div>
+						<div className='flex flex-row gap-10 items-center'>
+							<div className='bg-white p-3 cursor-pointer rounded-full'>
+								<VolumeUpIcon />
+							</div>
+							<div className='bg-white p-3 cursor-pointer rounded-full'>
+								<VolumeOffIcon />
+							</div>
+							<div className='bg-white p-3 rounded-full bg-red-700 cursor-pointer text-white' onClick={leaveCall}>
+								<PhoneIcon />
+							</div>
+						</div>
+					</div>
+					:
+					<div className="flex min-h-screen flex-col items-center justify-between p-24">
+						<div className='flex flex-col gap-4 items-center'>
+							<p className='text-white font-bold text-xl'>Incoming Call</p>
+						</div>
+						<Avatar sx={{ width: 90, height: 90 }}>{name[0]}</Avatar>
+
+						<div className='flex flex-row gap-10 items-center'>
+							<div className='bg-white p-3 rounded-full bg-green-700 cursor-pointer text-white' onClick={answerCall}>
+								<PhoneIcon />
+							</div>
+							<div className='bg-white p-3 rounded-full bg-red-700 cursor-pointer text-white' onClick={leaveCall}>
+								<PhoneIcon />
+							</div>
+						</div>
+					</div>
+				}
+				</>
+
+				:
+				<>
+					{outgoingCall ?
+						<>
+							{callAccepted ?
+								<div className="flex min-h-screen flex-col items-center justify-between p-24">
+									<div className='flex flex-col gap-4 items-center'>
+										<p className='text-white font-bold text-xl'>In Call</p>
+									</div>
+									<Avatar sx={{ width: 90, height: 90 }}>A</Avatar>
+									<div className="video-container">
+										{/* <div className="video"> */}
+										{/* <p>Desktop :</p> */}
+										{/* {stream && <audio playsInline ref={myVideo} muted autoPlay style={{ width: "300px" }} />} */}
+										{/* </div> */}
+										<div className="video">
+											{/* {name ? <p>{name} :</p>: null} */}
+											{/* <p>Remote :</p> */}
+											{callAccepted && !callEnded ?
+												<audio playsInline ref={userVideo} autoPlay style={{ width: "300px" }} /> :
+												null}
+										</div>
+									</div>
+									<div className='flex flex-row gap-10 items-center'>
+										<div className='bg-white p-3 cursor-pointer rounded-full'>
+											<VolumeUpIcon />
+										</div>
+										<div className='bg-white p-3 cursor-pointer rounded-full'>
+											<VolumeOffIcon />
+										</div>
+										<div className='bg-white p-3 rounded-full bg-red-700 cursor-pointer text-white' onClick={leaveCall}>
+											<PhoneIcon />
+										</div>
+									</div>
+								</div>
+								: (
+									<div className="flex min-h-screen flex-col items-center justify-between p-24">
+										<div className='flex flex-col gap-4 items-center'>
+											<p className='text-white font-bold text-xl'>Calling</p>
+										</div>
+										<Avatar sx={{ width: 90, height: 90 }}>N</Avatar>
+										<div className="video">
+											{/* <p>Desktop :</p> */}
+											{stream && <audio playsInline ref={myVideo} muted autoPlay style={{ width: "300px" }} />}
+										</div>
+										<div className='flex flex-row gap-10 items-center'>
+											<div className='bg-white p-3 cursor-pointer rounded-full'>
+												<VolumeUpIcon />
+											</div>
+											<div className='bg-white p-3 cursor-pointer rounded-full'>
+												<VolumeOffIcon />
+											</div>
+											<div className='bg-white p-3 rounded-full bg-red-700 cursor-pointer text-white'>
+												<PhoneIcon />
+											</div>
+										</div>
+									</div>
+								)}</>
+						:
+						<>
+							< h1 style={{ textAlign: "center", color: '#fff' }}>Audio call</h1 >
+							<div className="container">
+								<div className="myId">
+									<TextField
+										id="filled-basic"
+										label="Name"
+										variant="filled"
+										value={myName}
+										onChange={(e) => setMyName(e.target.value)}
+										style={{ marginBottom: "20px" }}
+									/>
+									<p>My id : {me}</p>
+
+									<TextField
+										id="filled-basic"
+										label="ID to call"
+										variant="filled"
+										value={idToCall}
+										onChange={(e) => setIdToCall(e.target.value)}
+									/>
+									<div className="call-button">
+										{callAccepted && !callEnded ? (
+											<Button variant="contained" color="secondary" onClick={leaveCall}>
+												End Call
+											</Button>
+										) : (
+											<IconButton color="primary" aria-label="call" onClick={() => callUser(idToCall)}>
+												<LocalPhone fontSize="large" />
+											</IconButton>
+										)}
+										{idToCall}
+									</div>
+								</div>
+							</div>
+						</>
+					}</>
+			}
 		</>
 	)
 }
