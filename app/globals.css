@@ -17,12 +17,13 @@
 }
 
 .container {
-	display: grid;
-	grid-template-columns: 7fr 3fr;
+	display: flex;
+	align-items: center;
+	justify-content: center;
 }
 
 .myId {
-	margin-right: 5rem;
+	/* margin-right: 5rem; */
 	border-radius: 5px;
 	background: #c9d6ff; /* fallback for old browsers */
 	background: -webkit-linear-gradient(to right, #e2e2e2, #c9d6ff); /* Chrome 10-25, Safari 5.1-6 */
@@ -37,7 +38,6 @@
 	justify-content: center;
 	align-content: center;
 }
-
 .call-button {
 	text-align: center;
 	margin-top: 2rem;
