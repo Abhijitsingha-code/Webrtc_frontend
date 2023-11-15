@@ -11,6 +11,7 @@ import Avatar from '@mui/material/Avatar';
 import PhoneIcon from '@mui/icons-material/Phone';
 import VolumeUpIcon from '@mui/icons-material/VolumeUp';
 import VolumeOffIcon from '@mui/icons-material/VolumeOff';
+import InCallInterFace from '@/components/InCallInterFace';
 
 
 function App() {
@@ -30,6 +31,10 @@ function App() {
 	const [socket2, setSocket2] = useState<any>()
 	const [myName, setMyName] = useState('');
 	const route = useRouter()
+	const [ringtone, setRingtone] = useState<any>();
+	const [isMute, setIsMute] = useState<boolean>(false);
+	const [isSpeakerOn, setIsSpeakerOn] = useState<boolean>(false);
+
 
 	// useEffect(() => {
 	// 	console.log('Setting up socket and media devices');
@@ -63,6 +68,13 @@ function App() {
 	// }, [socket, thisfun]);
 
 	useEffect(() => {
+		if (typeof window !== 'undefined') {
+			const audio = new Audio('/ringtone.mp3');
+			setRingtone(audio);
+		}
+	}, []);
+
+	useEffect(() => {
 		navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then((stream) => {
 			console.log('Media devices initialized');
 			setStream(stream);
@@ -73,7 +85,7 @@ function App() {
 	}, []);
 
 	useEffect(() => {
-		let socket = io('https://webrtc-c6vy.onrender.com'); 
+		let socket = io('https://webrtc-c6vy.onrender.com');
 
 		socket.connect();
 
@@ -90,17 +102,23 @@ function App() {
 				setCaller(data.from);
 				setName(data.name);
 				setCallerSignal(data.signal);
+
+				if (ringtone) {
+					ringtone.play();
+				}
 			});
-
+			socket?.on("leaveCall", (data: any) => {
+				console.log(`${data.from} left the call.`);
+				connectionRef?.current?.destroy();
+				window.location.reload();
+			});
 		});
-
-
 		return () => {
 			socket.off("connect");
 			socket.off("me");
 			socket.off("callUser");
 		};
-	}, [])
+	}, [ringtone])
 
 	const callUser = (id: any) => {
 		setOutgoingCall(true)
@@ -133,6 +151,8 @@ function App() {
 
 	const answerCall = () => {
 		setCallAccepted(true);
+		ringtone.pause();
+		ringtone.currentTime = 0;
 		const peer = new Peer({
 			initiator: false,
 			trickle: false,
@@ -152,46 +172,42 @@ function App() {
 	}
 
 	const leaveCall = () => {
+		socket2?.emit("leaveCall", { from: me });
 		setCallEnded(true)
-		connectionRef.current.destroy();
+		connectionRef?.current?.destroy();
+		ringtone.pause();
+		ringtone.currentTime = 0;
 		window.location.reload();
 	}
+
+	const muteMic = () => {
+		setIsMute(!isMute)
+		stream.getAudioTracks().forEach((track: { enabled: boolean; }) => track.enabled = !track.enabled);
+	}
+
+	const switchAudioOutput = async (deviceType: any) => {
+		setIsSpeakerOn(!isSpeakerOn)
+		try {
+			const audioOutputDevices = await navigator.mediaDevices.enumerateDevices();
+			const selectedDevice = audioOutputDevices.find((device) => device.kind === 'audiooutput' && device.label.includes(deviceType));
+
+			console.log(userVideo.current.srcObject)
+			if (selectedDevice) {
+				userVideo.current.setSinkId(selectedDevice.deviceId)
+			} else {
+				console.error(`No ${deviceType} found in audio output devices.`);
+			}
+		} catch (error) {
+			console.error('Error switching audio output:', error);
+		}
+	};
 
 	return (
 		<>
 			{receivingCall ?
 
 				<>{callAccepted ?
-					<div className="flex min-h-screen flex-col items-center justify-between p-24">
-						<div className='flex flex-col gap-4 items-center'>
-							<p className='text-white font-bold text-xl'>In Call</p>
-						</div>
-						<Avatar sx={{ width: 90, height: 90 }}>{name[0]}</Avatar>
-						<div className="video-container">
-							{/* <div className="video"> */}
-							{/* <p>Desktop :</p> */}
-							{/* {stream && <audio playsInline ref={myVideo} muted autoPlay style={{ width: "300px" }} />} */}
-							{/* </div> */}
-							<div className="video">
-								{/* {name ? <p>{name} :</p>: null} */}
-								{/* <p>Remote :</p> */}
-								{callAccepted && !callEnded ?
-									<audio playsInline ref={userVideo} autoPlay style={{ width: "300px" }} /> :
-									null}
-							</div>
-						</div>
-						<div className='flex flex-row gap-10 items-center'>
-							<div className='bg-white p-3 cursor-pointer rounded-full'>
-								<VolumeUpIcon />
-							</div>
-							<div className='bg-white p-3 cursor-pointer rounded-full'>
-								<VolumeOffIcon />
-							</div>
-							<div className='p-3 rounded-full bg-red-800 cursor-pointer text-white' onClick={leaveCall}>
-								<PhoneIcon />
-							</div>
-						</div>
-					</div>
+					<InCallInterFace name={name} callAccepted={callAccepted} callEnded={callEnded} userVideo={userVideo} isSpeakerOn={isSpeakerOn} isMute={isMute} muteMic={muteMic} switchToSpeaker={switchAudioOutput} leaveCall={leaveCall} />
 					:
 					<div className="flex min-h-screen flex-col items-center justify-between p-24">
 						<div className='flex flex-col gap-4 items-center'>
@@ -200,10 +216,10 @@ function App() {
 						<Avatar sx={{ width: 90, height: 90 }}>{name[0]}</Avatar>
 
 						<div className='flex flex-row gap-10 items-center'>
-							<div className='p-3 rounded-full bg-green-800 cursor-pointer text-white' onClick={answerCall}>
+							<div className='p-3 rounded-full bg-green-700 cursor-pointer text-white' onClick={answerCall}>
 								<PhoneIcon />
 							</div>
-							<div className='p-3 rounded-full bg-red-800 cursor-pointer text-white' onClick={leaveCall}>
+							<div className='p-3 rounded-full bg-red-700 cursor-pointer text-white' onClick={leaveCall}>
 								<PhoneIcon />
 							</div>
 						</div>
@@ -216,54 +232,25 @@ function App() {
 					{outgoingCall ?
 						<>
 							{callAccepted ?
-								<div className="flex min-h-screen flex-col items-center justify-between p-24">
-									<div className='flex flex-col gap-4 items-center'>
-										<p className='text-white font-bold text-xl'>In Call</p>
-									</div>
-									<Avatar sx={{ width: 90, height: 90 }}>A</Avatar>
-									<div className="video-container">
-										{/* <div className="video"> */}
-										{/* <p>Desktop :</p> */}
-										{/* {stream && <audio playsInline ref={myVideo} muted autoPlay style={{ width: "300px" }} />} */}
-										{/* </div> */}
-										<div className="video">
-											{/* {name ? <p>{name} :</p>: null} */}
-											{/* <p>Remote :</p> */}
-											{callAccepted && !callEnded ?
-												<audio playsInline ref={userVideo} autoPlay style={{ width: "300px" }} /> :
-												null}
-										</div>
-									</div>
-									<div className='flex flex-row gap-10 items-center'>
-										<div className='bg-white p-3 cursor-pointer rounded-full'>
-											<VolumeUpIcon />
-										</div>
-										<div className='bg-white p-3 cursor-pointer rounded-full'>
-											<VolumeOffIcon />
-										</div>
-										<div className='p-3 rounded-full bg-red-800 cursor-pointer text-white' onClick={leaveCall}>
-											<PhoneIcon />
-										</div>
-									</div>
-								</div>
+								<InCallInterFace name={'A'} callAccepted={callAccepted} callEnded={callEnded} userVideo={userVideo} isSpeakerOn={isSpeakerOn} isMute={isMute} muteMic={muteMic} switchToSpeaker={switchAudioOutput} leaveCall={leaveCall} />
+
 								: (
 									<div className="flex min-h-screen flex-col items-center justify-between p-24">
 										<div className='flex flex-col gap-4 items-center'>
 											<p className='text-white font-bold text-xl'>Calling</p>
 										</div>
-										<Avatar sx={{ width: 90, height: 90 }}>N</Avatar>
+										<Avatar sx={{ width: 90, height: 90 }}>A</Avatar>
 										<div className="video">
-											{/* <p>Desktop :</p> */}
 											{stream && <audio playsInline ref={myVideo} muted autoPlay style={{ width: "300px" }} />}
 										</div>
 										<div className='flex flex-row gap-10 items-center'>
-											<div className='bg-white p-3 cursor-pointer rounded-full'>
+											<div className={`p-3 cursor-pointer rounded-full ${isSpeakerOn ? 'bg-blue-400' : 'bg-white'}`} onClick={() => { !isSpeakerOn ? switchAudioOutput('Speakers') : switchAudioOutput('Headphones') }}>
 												<VolumeUpIcon />
 											</div>
-											<div className='bg-white p-3 cursor-pointer rounded-full'>
+											<div className={`p-3 cursor-pointer rounded-full ${isMute ? 'bg-gray-400' : 'bg-white'}`} onClick={muteMic}>
 												<VolumeOffIcon />
 											</div>
-											<div className='p-3 rounded-full bg-red-800 cursor-pointer text-white'>
+											<div className='p-3 rounded-full bg-red-700 cursor-pointer text-white' onClick={leaveCall}>
 												<PhoneIcon />
 											</div>
 										</div>
@@ -271,7 +258,7 @@ function App() {
 								)}</>
 						:
 						<div className="flex min-h-screen flex-col items-center justify-center">
-							< h1 style={{ textAlign: "center", color: '#fff',fontWeight:'800',marginBottom:10,fontSize:'20px' }}>Audio call</h1 >
+							< h1 style={{ textAlign: "center", color: '#fff', fontWeight: '800', marginBottom: 10, fontSize: '20px' }}>Audio call</h1 >
 							<div className="container">
 								<div className="myId">
 									<TextField
